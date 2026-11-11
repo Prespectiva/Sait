@@ -15,9 +15,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($stmt->fetch()) {
             $error = "Этот Email уже занят!";
         } else {
+            $countUsers = $db->query("SELECT COUNT(*) FROM users")->fetchColumn();
+            $role = ($countUsers == 0) ? 'admin' : 'user'; // Первый - админ
+
             $hash = password_hash($password, PASSWORD_DEFAULT);
-            $stmt = $db->prepare("INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)");
-            $stmt->execute([$name, $email, $hash]);
+            $stmt = $db->prepare("INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)");
+            $stmt->execute([$name, $email, $hash, $role]);
             
             header("Location: login.php?registered=1");
             exit;
@@ -30,18 +33,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <title>Регистрация | Колледж.Банк</title>
-    <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8"><title>Регистрация | Колледж.Банк</title><link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="card">
-        <h2>Регистрация в Колледж.Банк</h2>
-        
-        <?php if ($error): ?>
-            <div class="msg error"><?= htmlspecialchars($error) ?></div>
-        <?php endif; ?>
-        
+        <h2>Регистрация</h2>
+        <?php if ($error): ?><div class="msg error"><?= htmlspecialchars($error) ?></div><?php endif; ?>
         <form method="POST" action="">
             <input type="text" name="name" placeholder="Ваше имя" required>
             <input type="email" name="email" placeholder="Email (логин)" required>

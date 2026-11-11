@@ -14,7 +14,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($user && password_verify($password, $user['password_hash'])) {
             $_SESSION['user_id'] = (int)$user['id'];
-            header("Location: profile.php");
+            $_SESSION['role'] = $user['role'];
+            header("Location: index.php");
             exit;
         } else {
             $error = "Неверный Email или пароль!";
@@ -27,20 +28,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <title>Вход | Колледж.Банк</title>
-    <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8"><title>Вход | Колледж.Банк</title><link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="card">
         <h2>Вход в Колледж.Банк</h2>
-        
         <?php if (isset($_GET['registered'])): ?>
-            <div class="msg" style="background:#f0fdf4; color:#166534; border:1px solid #bbf7d0;">Успешная регистрация! Войдите.</div>
+            <div class="msg success">Успешная регистрация! Войдите.</div>
         <?php endif; ?>
-        <?php if ($error): ?>
-            <div class="msg error"><?= htmlspecialchars($error) ?></div>
-        <?php endif; ?>
+        <?php if ($error): ?><div class="msg error"><?= htmlspecialchars($error) ?></div><?php endif; ?>
         
         <form method="POST" action="">
             <input type="email" name="email" placeholder="Email" required>

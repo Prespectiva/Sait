@@ -8,6 +8,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $userId = (int)$_SESSION['user_id'];
+$isAdmin = (($_SESSION['role'] ?? '') === 'admin');
 $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
@@ -17,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
 
     $stmt = $db->prepare("UPDATE users SET name = ?, bio = ?, skills = ? WHERE id = ?");
     $stmt->execute([$name, $bio, $skills, $userId]);
-    $success = "Профиль успешно обновлен!";
+    $success = "Профиль обновлен!";
 }
 
 $stmt = $db->prepare("SELECT * FROM users WHERE id = ?");
@@ -30,24 +31,25 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
     <meta charset="UTF-8"><title>Личный кабинет | Колледж.Банк</title><link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="dashboard-container">
-        <div class="top-bar">
-            <div><strong>Колледж.Банк</strong></div>
-            <div>
-                <a href="offers.php" class="nav-link">Заявки</a>
-                <a href="requests.php" class="nav-link">Отклики</a>
-            </div>
-            <div style="display: flex; align-items: center;">
-                <a href="profile.php" class="nav-link active" style="margin-right: 15px;">Личный кабинет</a>
-                <a href="logout.php" class="logout-btn">Выйти</a>
-            </div>
+    <div class="top-bar">
+        <div><strong>Колледж.Банк</strong></div>
+        <div>
+            <a href="offers.php" class="nav-link">Заявки</a>
+            <a href="requests.php" class="nav-link">Отклики</a>
+            <?php if ($isAdmin): ?><a href="admin.php" class="nav-link" style="color: red;">Админ-панель</a><?php endif; ?>
         </div>
+        <div style="display: flex; align-items: center;">
+            <a href="profile.php" class="nav-link active" style="margin-right: 15px;">Личный кабинет</a>
+            <a href="logout.php" class="logout-btn">Выйти</a>
+        </div>
+    </div>
 
+    <div class="dashboard-container">
         <?php if ($success): ?><div class="msg success" style="margin-bottom:20px; text-align:center;"><?= htmlspecialchars($success) ?></div><?php endif; ?>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
             <div class="content-box" style="text-align: left;">
-                <h2 style="margin-bottom: 20px;">Мой профиль</h2>
+                <h2 style="margin-bottom: 20px;">Мой профиль (<?= $user['role'] ?>)</h2>
                 <p style="margin-bottom: 10px;"><strong>Имя:</strong> <?= htmlspecialchars($user['name']) ?></p>
                 <p style="margin-bottom: 10px;"><strong>Email:</strong> <?= htmlspecialchars($user['email']) ?></p>
                 <p style="margin-bottom: 10px;"><strong>Дата регистрации:</strong> <?= date('d.m.Y', strtotime($user['created_at'])) ?></p>

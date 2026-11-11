@@ -8,6 +8,7 @@ $db->exec("CREATE TABLE IF NOT EXISTS users (
     name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
+    role TEXT DEFAULT 'user',
     bio TEXT DEFAULT 'Информация обо мне пока не заполнена.',
     skills TEXT DEFAULT 'Навыки не указаны',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
