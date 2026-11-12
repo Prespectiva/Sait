@@ -23,6 +23,7 @@ $db->exec("CREATE TABLE IF NOT EXISTS offers (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
     category_id INTEGER NOT NULL,
+    type TEXT DEFAULT 'help', 
     title TEXT NOT NULL,
     description TEXT,
     status TEXT DEFAULT 'active',
@@ -35,21 +36,19 @@ $db->exec("CREATE TABLE IF NOT EXISTS offers (
 $db->exec("CREATE TABLE IF NOT EXISTS requests (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     offer_id INTEGER NOT NULL,
-    user_id INTEGER NOT NULL,
+    sender_id INTEGER NOT NULL,
+    receiver_id INTEGER NOT NULL,
     message TEXT,
     status TEXT DEFAULT 'pending',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (offer_id) REFERENCES offers(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
 )");
 
 $checkCat = $db->query("SELECT COUNT(*) FROM categories")->fetchColumn();
 if ($checkCat == 0) {
-    $db->exec("INSERT INTO categories (name) VALUES 
-        ('Учебные материалы'), 
-        ('Помощь с кодом'), 
-        ('Поиск напарника'), 
-        ('Внеучебная деятельность')
-    ");
+    $db->exec("INSERT INTO categories (name) VALUES ('Математика'), ('Программирование'), ('Иностранные языки'), ('Физика')");
 }
 ?>

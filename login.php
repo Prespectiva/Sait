@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($user && password_verify($password, $user['password_hash'])) {
             $_SESSION['user_id'] = (int)$user['id'];
             $_SESSION['role'] = $user['role'];
-            header("Location: index.php");
+            header("Location: offers.php");
             exit;
         } else {
             $error = "Неверный Email или пароль!";
@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body>
     <div class="card">
-        <h2>Вход в Колледж.Банк</h2>
+        <h2>Вход</h2>
         <?php if (isset($_GET['registered'])): ?>
             <div class="msg success">Успешная регистрация! Войдите.</div>
         <?php endif; ?>

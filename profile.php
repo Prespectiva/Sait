@@ -49,10 +49,10 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
             <div class="content-box" style="text-align: left;">
-                <h2 style="margin-bottom: 20px;">Мой профиль (<?= $user['role'] ?>)</h2>
+                <h2 style="margin-bottom: 20px;">Мой профиль</h2>
                 <p style="margin-bottom: 10px;"><strong>Имя:</strong> <?= htmlspecialchars($user['name']) ?></p>
                 <p style="margin-bottom: 10px;"><strong>Email:</strong> <?= htmlspecialchars($user['email']) ?></p>
-                <p style="margin-bottom: 10px;"><strong>Дата регистрации:</strong> <?= date('d.m.Y', strtotime($user['created_at'])) ?></p>
+                <p style="margin-bottom: 10px;"><strong>Дата:</strong> <?= date('d.m.Y', strtotime($user['created_at'])) ?></p>
                 
                 <hr style="margin: 20px 0; border: none; border-top: 1px solid var(--border);">
                 
@@ -61,7 +61,7 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
             </div>
 
             <div class="content-box" style="text-align: left;">
-                <h2 style="margin-bottom: 20px;">Редактировать профиль</h2>
+                <h2 style="margin-bottom: 20px;">Редактировать</h2>
                 <form method="POST" action="">
                     <input type="hidden" name="update_profile" value="1">
                     <label style="font-size: 14px; color: var(--text-muted);">Имя</label>
@@ -73,7 +73,7 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
                     <label style="font-size: 14px; color: var(--text-muted);">Навыки</label>
                     <textarea name="skills" rows="3" style="width:100%; padding:10px; margin-bottom:15px; background:#f9fafb; border:1px solid var(--border); border-radius:6px; font-family:inherit; resize:vertical;"><?= htmlspecialchars($user['skills']) ?></textarea>
                     
-                    <button type="submit">Сохранить изменения</button>
+                    <button type="submit">Сохранить</button>
                 </form>
             </div>
         </div>

@@ -16,7 +16,7 @@ $users = $db->query("SELECT id, name, email, role, created_at FROM users ORDER B
 </head>
 <body>
     <div class="top-bar">
-        <div><strong>Колледж.Банк (Админ)</strong></div>
+        <div><strong>Колледж.Банк</strong></div>
         <div>
             <a href="offers.php" class="nav-link">Заявки</a>
             <a href="requests.php" class="nav-link">Отклики</a>
@@ -30,7 +30,7 @@ $users = $db->query("SELECT id, name, email, role, created_at FROM users ORDER B
 
     <div class="dashboard-container">
         <div class="content-box" style="text-align: left;">
-            <h2>Управление пользователями</h2>
+            <h2>Пользователи</h2>
             <table>
                 <tr>
                     <th>ID</th>

@@ -5,81 +5,73 @@ session_start();
 $isAuth = isset($_SESSION['user_id']);
 $userId = $isAuth ? (int)$_SESSION['user_id'] : 0;
 $isAdmin = $isAuth && (($_SESSION['role'] ?? '') === 'admin');
-$error = '';
-$success = '';
+$msg = '';
 
-// Логика создания/удаления только для авторизованных
-if ($isAuth) {
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'create') {
-        $title = trim($_POST['title'] ?? '');
-        $desc = trim($_POST['description'] ?? '');
-        $catId = (int)($_POST['category_id'] ?? 1);
-        if ($title && $desc) {
-            $stmt = $db->prepare("INSERT INTO offers (user_id, category_id, title, description) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$userId, $catId, $title, $desc]);
-            $success = "Заявка создана!";
-        }
-    }
-
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update') {
-        $offerId = (int)$_POST['offer_id'];
-        $title = trim($_POST['title'] ?? '');
-        $desc = trim($_POST['description'] ?? '');
+if ($isAuth && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    $action = $_POST['action'];
+    $id = (int)($_POST['offer_id'] ?? 0);
+    
+    if ($action === 'create') {
+        $stmt = $db->prepare("INSERT INTO offers (user_id, category_id, type, title, description) VALUES (?, ?, ?, ?, ?)");
+        $stmt->execute([$userId, (int)$_POST['category_id'], $_POST['type'], $_POST['title'], $_POST['description']]);
+        $msg = "Заявка создана!";
+    } elseif ($action === 'update') {
         $stmt = $db->prepare("SELECT user_id FROM offers WHERE id = ?");
-        $stmt->execute([$offerId]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        if ($row && ($isAdmin || (int)$row['user_id'] === $userId)) {
-            $stmt = $db->prepare("UPDATE offers SET title = ?, description = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
-            $stmt->execute([$title, $desc, $offerId]);
-            $success = "Заявка обновлена!";
+        $stmt->execute([$id]);
+        if ($isAdmin || $stmt->fetchColumn() == $userId) {
+            $db->prepare("UPDATE offers SET title=?, description=?, type=?, updated_at=CURRENT_TIMESTAMP WHERE id=?")
+               ->execute([$_POST['title'], $_POST['description'], $_POST['type'], $id]);
+            $msg = "Заявка обновлена!";
         }
-    }
-
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete') {
-        $offerId = (int)$_POST['offer_id'];
+    } elseif ($action === 'delete') {
         $stmt = $db->prepare("SELECT user_id FROM offers WHERE id = ?");
-        $stmt->execute([$offerId]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        if ($row && ($isAdmin || (int)$row['user_id'] === $userId)) {
-            $stmt = $db->prepare("DELETE FROM offers WHERE id = ?");
-            $stmt->execute([$offerId]);
-            $success = "Заявка удалена.";
+        $stmt->execute([$id]);
+        if ($isAdmin || $stmt->fetchColumn() == $userId) {
+            $db->prepare("DELETE FROM offers WHERE id = ?")->execute([$id]);
+            $msg = "Заявка удалена.";
         }
     }
 }
 
-$editOffer = null;
-if ($isAuth && isset($_GET['edit'])) {
-    $editId = (int)$_GET['edit'];
-    $stmt = $db->prepare("SELECT * FROM offers WHERE id = ?");
-    $stmt->execute([$editId]);
-    $editOffer = $stmt->fetch(PDO::FETCH_ASSOC);
-}
+$q = trim($_GET['q'] ?? '');
+$fType = $_GET['type'] ?? '';
+$fCat = (int)($_GET['category'] ?? 0);
+$sort = $_GET['sort'] ?? 'date_desc';
 
-$stmt = $db->prepare("
-    SELECT offers.*, users.name as author_name, categories.name as cat_name 
-    FROM offers 
-    JOIN users ON offers.user_id = users.id 
-    JOIN categories ON offers.category_id = categories.id
-    WHERE offers.status = 'active' ORDER BY offers.id DESC
-");
-$stmt->execute();
+$sql = "SELECT o.*, u.name as author_name, c.name as cat_name FROM offers o 
+        JOIN users u ON o.user_id = u.id JOIN categories c ON o.category_id = c.id 
+        WHERE o.status = 'active'";
+$params = [];
+
+if ($q) { $sql .= " AND (o.title LIKE ? OR o.description LIKE ?)"; $params[] = "%$q%"; $params[] = "%$q%"; }
+if ($fType) { $sql .= " AND o.type = ?"; $params[] = $fType; }
+if ($fCat) { $sql .= " AND o.category_id = ?"; $params[] = $fCat; }
+
+$sorts = ['date_desc' => 'o.created_at DESC', 'date_asc' => 'o.created_at ASC', 'title_asc' => 'o.title ASC', 'title_desc' => 'o.title DESC'];
+$sql .= " ORDER BY " . ($sorts[$sort] ?? $sorts['date_desc']);
+
+$stmt = $db->prepare($sql);
+$stmt->execute($params);
 $offers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $categories = $db->query("SELECT * FROM categories")->fetchAll(PDO::FETCH_ASSOC);
+
+$edit = null;
+if ($isAuth && isset($_GET['edit'])) {
+    $stmt = $db->prepare("SELECT * FROM offers WHERE id = ?");
+    $stmt->execute([(int)$_GET['edit']]);
+    $edit = $stmt->fetch(PDO::FETCH_ASSOC);
+}
 ?>
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8"><title>Заявки | Колледж.Банк</title><link rel="stylesheet" href="style.css">
-    <?php if ($isAuth): ?>
     <script>function toggleForm() { var f = document.getElementById('createForm'); f.style.display = (f.style.display === 'none') ? 'block' : 'none'; }</script>
-    <?php endif; ?>
 </head>
 <body>
     <div class="top-bar">
         <div><strong>Колледж.Банк</strong></div>
         <div>
-            <!-- Вкладка Главная убрана -->
             <a href="offers.php" class="nav-link active">Заявки</a>
             <?php if ($isAuth): ?>
                 <a href="requests.php" class="nav-link">Отклики</a>
@@ -98,69 +90,125 @@ $categories = $db->query("SELECT * FROM categories")->fetchAll(PDO::FETCH_ASSOC)
     </div>
 
     <div class="dashboard-container">
-        <?php if ($error): ?><div class="msg error"><?= htmlspecialchars($error) ?></div><?php endif; ?>
-        <?php if ($success): ?><div class="msg success"><?= htmlspecialchars($success) ?></div><?php endif; ?>
+        <?php if ($msg): ?><div class="msg success"><?= $msg ?></div><?php endif; ?>
 
         <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
-            <h2 style="margin: 0;">Каталог заявок</h2>
-            <?php if ($isAuth && !$editOffer): ?>
-                <button onclick="toggleForm()" style="width: auto; padding: 10px 20px;">+ Создать</button>
-            <?php endif; ?>
+            <h2 style="margin: 0;">Каталог публикаций</h2>
+            <?php if ($isAuth && !$edit): ?><button onclick="toggleForm()" style="width: auto; padding: 10px 20px;">+ Создать</button><?php endif; ?>
+        </div>
+
+        <div class="content-box" style="margin-bottom: 20px; padding: 15px;">
+            <form method="GET" style="display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end;">
+                
+                <div style="flex: 1 1 200px;">
+                    <label style="font-size:12px; display:block; margin-bottom:5px;">Поиск</label>
+                    <input type="text" name="q" value="<?= htmlspecialchars($q) ?>" style="margin:0; width:100%;">
+                </div>
+                
+                <div style="flex: 1 1 120px;">
+                    <label style="font-size:12px; display:block; margin-bottom:5px;">Тип</label>
+                    <select name="type" style="margin:0; width:100%;">
+                        <option value="">Все</option>
+                        <option value="help" <?= $fType=='help'?'selected':'' ?>>Помощь</option>
+                        <option value="skill" <?= $fType=='skill'?'selected':'' ?>>Навык</option>
+                        <option value="request" <?= $fType=='request'?'selected':'' ?>>Запрос</option>
+                    </select>
+                </div>
+                
+                <div style="flex: 1 1 120px;">
+                    <label style="font-size:12px; display:block; margin-bottom:5px;">Категория</label>
+                    <select name="category" style="margin:0; width:100%;">
+                        <option value="">Все</option>
+                        <?php foreach ($categories as $c): ?>
+                            <option value="<?= $c['id'] ?>" <?= $fCat==$c['id']?'selected':'' ?>><?= htmlspecialchars($c['name']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                
+                <div style="flex: 1 1 150px;">
+                    <label style="font-size:12px; display:block; margin-bottom:5px;">Сортировка</label>
+                    <select name="sort" style="margin:0; width:100%;">
+                        <option value="date_desc" <?= $sort=='date_desc'?'selected':'' ?>>Сначала новые</option>
+                        <option value="date_asc" <?= $sort=='date_asc'?'selected':'' ?>>Сначала старые</option>
+                        <option value="title_asc" <?= $sort=='title_asc'?'selected':'' ?>>А-Я</option>
+                        <option value="title_desc" <?= $sort=='title_desc'?'selected':'' ?>>Я-А</option>
+                    </select>
+                </div>
+                
+                <div style="display: flex; gap: 10px; flex: 0 0 auto;">
+                    <button type="submit" style="height: 38px; width: auto; padding: 0 20px;">Найти</button>
+                    <a href="offers.php" class="btn-edit" style="height: 38px; margin: 0; display: flex; align-items: center; padding: 0 20px; box-sizing: border-box;">Сброс</a>
+                </div>
+            </form>
         </div>
 
         <?php if ($isAuth): ?>
-        <div class="content-box" id="createForm" style="margin-bottom: 20px; text-align: left; display: <?= $editOffer ? 'block' : 'none' ?>;">
-            <h2><?= $editOffer ? 'Редактировать' : 'Новая заявка' ?></h2>
-            <form method="POST" action="">
-                <input type="hidden" name="action" value="<?= $editOffer ? 'update' : 'create' ?>">
-                <?php if ($editOffer): ?><input type="hidden" name="offer_id" value="<?= $editOffer['id'] ?>"><?php endif; ?>
-                <input type="text" name="title" value="<?= $editOffer ? htmlspecialchars($editOffer['title']) : '' ?>" placeholder="Заголовок" required>
-                <?php if (!$editOffer): ?>
-                    <select name="category_id"><?php foreach ($categories as $cat): ?><option value="<?= $cat['id'] ?>"><?= htmlspecialchars($cat['name']) ?></option><?php endforeach; ?></select>
-                <?php endif; ?>
-                <textarea name="description" rows="3" placeholder="Описание" required><?= $editOffer ? htmlspecialchars($editOffer['description']) : '' ?></textarea>
-                <button type="submit" style="width: 150px;"><?= $editOffer ? 'Сохранить' : 'Опубликовать' ?></button>
+        <div class="content-box" id="createForm" style="margin-bottom: 20px; display: <?= $edit ? 'block' : 'none' ?>;">
+            <h2><?= $edit ? 'Редактировать' : 'Новая заявка' ?></h2>
+            <form method="POST">
+                <input type="hidden" name="action" value="<?= $edit ? 'update' : 'create' ?>">
+                <?php if ($edit): ?><input type="hidden" name="offer_id" value="<?= $edit['id'] ?>"><?php endif; ?>
+                
+                <input type="text" name="title" value="<?= $edit ? htmlspecialchars($edit['title']) : '' ?>" placeholder="Заголовок" required>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                    <select name="type" style="margin:0;">
+                        <option value="help" <?= $edit && $edit['type']=='help'?'selected':'' ?>>Помощь</option>
+                        <option value="skill" <?= $edit && $edit['type']=='skill'?'selected':'' ?>>Навык</option>
+                        <option value="request" <?= $edit && $edit['type']=='request'?'selected':'' ?>>Запрос</option>
+                    </select>
+                    <?php if (!$edit): ?>
+                        <select name="category_id" style="margin:0;">
+                            <?php foreach ($categories as $c): ?><option value="<?= $c['id'] ?>"><?= htmlspecialchars($c['name']) ?></option><?php endforeach; ?>
+                        </select>
+                    <?php endif; ?>
+                </div>
+                
+                <textarea name="description" rows="3" placeholder="Описание" required><?= $edit ? htmlspecialchars($edit['description']) : '' ?></textarea>
+                <button type="submit" style="width: 150px;"><?= $edit ? 'Сохранить' : 'Опубликовать' ?></button>
             </form>
         </div>
         <?php endif; ?>
 
-        <div style="text-align: left;">
-            <?php if (empty($offers)): ?>
-                <p style="color:var(--text-muted); text-align: center; margin-top: 20px;">Пока нет ни одной заявки.</p>
-            <?php else: ?>
-                <?php foreach ($offers as $offer): ?>
-                    <div class="offer-card">
-                        <div style="display: flex; justify-content: space-between;">
-                            <h3><?= htmlspecialchars($offer['title']) ?></h3>
-                            <span class="badge"><?= htmlspecialchars($offer['cat_name']) ?></span>
-                        </div>
-                        <p class="meta">Автор: <?= htmlspecialchars($offer['author_name']) ?> | Дата: <?= date('d.m.Y', strtotime($offer['created_at'])) ?></p>
-                        <p><?= nl2br(htmlspecialchars($offer['description'])) ?></p>
-                        
-                        <?php if ($isAuth): ?>
-                        <div class="action-buttons">
-                            <?php if ($offer['user_id'] == $userId || $isAdmin): ?>
-                                <a href="offers.php?edit=<?= $offer['id'] ?>" class="btn-edit">Редактировать</a>
-                                <form method="POST" action="" onsubmit="return confirm('Удалить?');" style="margin: 0;">
-                                    <input type="hidden" name="action" value="delete">
-                                    <input type="hidden" name="offer_id" value="<?= $offer['id'] ?>">
-                                    <button type="submit" class="btn-delete">Удалить</button>
-                                </form>
-                            <?php endif; ?>
-
-                            <?php if ($offer['user_id'] != $userId): ?>
-                                <form method="POST" action="requests.php" style="margin: 0; display: flex; gap: 10px; width: 100%;">
-                                    <input type="hidden" name="offer_id" value="<?= $offer['id'] ?>">
-                                    <input type="text" name="message" placeholder="Сообщение..." style="margin: 0; height: 38px;">
-                                    <button type="submit" style="width: auto; padding: 0 20px; height: 38px;">Откликнуться</button>
-                                </form>
-                            <?php endif; ?>
-                        </div>
+        <?php if (empty($offers)): ?>
+            <p style="text-align:center; color:var(--text-muted);">Ничего не найдено.</p>
+        <?php else: ?>
+            <?php foreach ($offers as $o): ?>
+                <div class="offer-card">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <h3>
+                            <span class="badge" style="background:var(--accent); color:white; margin-right:8px; text-transform:uppercase; font-size:10px;">
+                                <?= htmlspecialchars($o['type']) ?>
+                            </span> 
+                            <?= htmlspecialchars($o['title']) ?>
+                        </h3>
+                        <span class="badge"><?= htmlspecialchars($o['cat_name']) ?></span>
+                    </div>
+                    <p class="meta">Автор: <?= htmlspecialchars($o['author_name']) ?> | <?= date('d.m.Y', strtotime($o['created_at'])) ?></p>
+                    <p><?= nl2br(htmlspecialchars($o['description'])) ?></p>
+                    
+                    <?php if ($isAuth): ?>
+                    <div class="action-buttons">
+                        <?php if ($o['user_id'] == $userId || $isAdmin): ?>
+                            <a href="offers.php?edit=<?= $o['id'] ?>" class="btn-edit">Изменить</a>
+                            <form method="POST" onsubmit="return confirm('Удалить?');" style="margin: 0;">
+                                <input type="hidden" name="action" value="delete">
+                                <input type="hidden" name="offer_id" value="<?= $o['id'] ?>">
+                                <button type="submit" class="btn-delete">Удалить</button>
+                            </form>
+                        <?php else: ?>
+                            <form method="POST" action="requests.php" style="margin: 0; display: flex; gap: 10px; width: 100%;">
+                                <input type="hidden" name="offer_id" value="<?= $o['id'] ?>">
+                                <input type="hidden" name="receiver_id" value="<?= $o['user_id'] ?>">
+                                <input type="text" name="message" placeholder="Ваше сообщение..." style="margin: 0; height: 38px;">
+                                <button type="submit" style="width: auto; padding: 0 15px; height: 38px;">Отправить заявку</button>
+                            </form>
                         <?php endif; ?>
                     </div>
-                <?php endforeach; ?>
-            <?php endif; ?>
-        </div>
+                    <?php endif; ?>
+                </div>
+            <?php endforeach; ?>
+        <?php endif; ?>
     </div>
 </body>
 </html>
