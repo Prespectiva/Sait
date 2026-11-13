@@ -7,12 +7,20 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
+if (empty($_SESSION['csrf'])) {
+    $_SESSION['csrf'] = bin2hex(random_bytes(32));
+}
+
 $userId = (int)$_SESSION['user_id'];
 $isAdmin = (($_SESSION['role'] ?? '') === 'admin');
 $success = '';
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['offer_id'])) {
+    if (!isset($_POST['csrf']) || $_POST['csrf'] !== $_SESSION['csrf']) {
+        die("Ошибка CSRF-токена!");
+    }
+    
     $offerId = (int)$_POST['offer_id'];
     $receiverId = (int)$_POST['receiver_id'];
     $message = trim($_POST['message'] ?? '');
@@ -33,6 +41,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['offer_id'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['request_id'])) {
+    if (!isset($_POST['csrf']) || $_POST['csrf'] !== $_SESSION['csrf']) {
+        die("Ошибка CSRF-токена!");
+    }
+    
     $reqId = (int)$_POST['request_id'];
     $action = $_POST['action'];
 
@@ -42,7 +54,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['req
         $stmt->execute([$newStatus, $reqId, $userId]);
         if ($stmt->rowCount()) $success = "Статус обновлен.";
         else $error = "Ошибка: нельзя изменить этот статус.";
-        
     } elseif ($action === 'cancel') {
         $stmt = $db->prepare("UPDATE requests SET status = 'cancelled', updated_at = CURRENT_TIMESTAMP WHERE id = ? AND sender_id = ? AND status = 'pending'");
         $stmt->execute([$reqId, $userId]);
@@ -120,8 +131,18 @@ function statusBadge($status) {
 
                         <?php if ($req['status'] === 'pending'): ?>
                             <div style="display:flex; gap:10px;">
-                                <form method="POST"><input type="hidden" name="request_id" value="<?= $req['id'] ?>"><input type="hidden" name="action" value="accept"><button type="submit" style="background:#10b981; width:auto; padding:6px 15px;">Принять</button></form>
-                                <form method="POST"><input type="hidden" name="request_id" value="<?= $req['id'] ?>"><input type="hidden" name="action" value="reject"><button type="submit" style="background:#ef4444; width:auto; padding:6px 15px;">Отклонить</button></form>
+                                <form method="POST">
+                                    <input type="hidden" name="csrf" value="<?= $_SESSION['csrf'] ?>">
+                                    <input type="hidden" name="request_id" value="<?= $req['id'] ?>">
+                                    <input type="hidden" name="action" value="accept">
+                                    <button type="submit" style="background:#10b981; width:auto; padding:6px 15px;">Принять</button>
+                                </form>
+                                <form method="POST">
+                                    <input type="hidden" name="csrf" value="<?= $_SESSION['csrf'] ?>">
+                                    <input type="hidden" name="request_id" value="<?= $req['id'] ?>">
+                                    <input type="hidden" name="action" value="reject">
+                                    <button type="submit" style="background:#ef4444; width:auto; padding:6px 15px;">Отклонить</button>
+                                </form>
                             </div>
                         <?php endif; ?>
                     </div>
@@ -141,7 +162,12 @@ function statusBadge($status) {
                         <div style="margin-bottom: 10px;">Статус: <?= statusBadge($req['status']) ?></div>
 
                         <?php if ($req['status'] === 'pending'): ?>
-                            <form method="POST"><input type="hidden" name="request_id" value="<?= $req['id'] ?>"><input type="hidden" name="action" value="cancel"><button type="submit" style="background:#6b7280; width:auto; padding:6px 15px;">Отменить заявку</button></form>
+                            <form method="POST">
+                                <input type="hidden" name="csrf" value="<?= $_SESSION['csrf'] ?>">
+                                <input type="hidden" name="request_id" value="<?= $req['id'] ?>">
+                                <input type="hidden" name="action" value="cancel">
+                                <button type="submit" style="background:#6b7280; width:auto; padding:6px 15px;">Отменить заявку</button>
+                            </form>
                         <?php endif; ?>
                     </div>
                 <?php endforeach; ?>

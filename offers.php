@@ -7,7 +7,15 @@ $userId = $isAuth ? (int)$_SESSION['user_id'] : 0;
 $isAdmin = $isAuth && (($_SESSION['role'] ?? '') === 'admin');
 $msg = '';
 
+if (empty($_SESSION['csrf'])) {
+    $_SESSION['csrf'] = bin2hex(random_bytes(32));
+}
+
 if ($isAuth && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    if (!isset($_POST['csrf']) || $_POST['csrf'] !== $_SESSION['csrf']) {
+        die("Ошибка CSRF-токена!");
+    }
+
     $action = $_POST['action'];
     $id = (int)($_POST['offer_id'] ?? 0);
     
@@ -38,17 +46,30 @@ $fType = $_GET['type'] ?? '';
 $fCat = (int)($_GET['category'] ?? 0);
 $sort = $_GET['sort'] ?? 'date_desc';
 
-$sql = "SELECT o.*, u.name as author_name, c.name as cat_name FROM offers o 
-        JOIN users u ON o.user_id = u.id JOIN categories c ON o.category_id = c.id 
-        WHERE o.status = 'active'";
+$sqlBase = "FROM offers o 
+            JOIN users u ON o.user_id = u.id 
+            JOIN categories c ON o.category_id = c.id 
+            WHERE o.status = 'active'";
 $params = [];
 
-if ($q) { $sql .= " AND (o.title LIKE ? OR o.description LIKE ?)"; $params[] = "%$q%"; $params[] = "%$q%"; }
-if ($fType) { $sql .= " AND o.type = ?"; $params[] = $fType; }
-if ($fCat) { $sql .= " AND o.category_id = ?"; $params[] = $fCat; }
+if ($q) { $sqlBase .= " AND (o.title LIKE ? OR o.description LIKE ?)"; $params[] = "%$q%"; $params[] = "%$q%"; }
+if ($fType) { $sqlBase .= " AND o.type = ?"; $params[] = $fType; }
+if ($fCat) { $sqlBase .= " AND o.category_id = ?"; $params[] = $fCat; }
+
+$limit = 5;
+$page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
+if ($page < 1) $page = 1;
+
+$countStmt = $db->prepare("SELECT COUNT(*) " . $sqlBase);
+$countStmt->execute($params);
+$totalRows = $countStmt->fetchColumn();
+$totalPages = ceil($totalRows / $limit);
+$offset = ($page - 1) * $limit;
 
 $sorts = ['date_desc' => 'o.created_at DESC', 'date_asc' => 'o.created_at ASC', 'title_asc' => 'o.title ASC', 'title_desc' => 'o.title DESC'];
+$sql = "SELECT o.*, u.name as author_name, c.name as cat_name " . $sqlBase;
 $sql .= " ORDER BY " . ($sorts[$sort] ?? $sorts['date_desc']);
+$sql .= " LIMIT $limit OFFSET $offset";
 
 $stmt = $db->prepare($sql);
 $stmt->execute($params);
@@ -146,6 +167,7 @@ if ($isAuth && isset($_GET['edit'])) {
         <div class="content-box" id="createForm" style="margin-bottom: 20px; display: <?= $edit ? 'block' : 'none' ?>;">
             <h2><?= $edit ? 'Редактировать' : 'Новая заявка' ?></h2>
             <form method="POST">
+                <input type="hidden" name="csrf" value="<?= $_SESSION['csrf'] ?>">
                 <input type="hidden" name="action" value="<?= $edit ? 'update' : 'create' ?>">
                 <?php if ($edit): ?><input type="hidden" name="offer_id" value="<?= $edit['id'] ?>"><?php endif; ?>
                 
@@ -192,12 +214,14 @@ if ($isAuth && isset($_GET['edit'])) {
                         <?php if ($o['user_id'] == $userId || $isAdmin): ?>
                             <a href="offers.php?edit=<?= $o['id'] ?>" class="btn-edit">Изменить</a>
                             <form method="POST" onsubmit="return confirm('Удалить?');" style="margin: 0;">
+                                <input type="hidden" name="csrf" value="<?= $_SESSION['csrf'] ?>">
                                 <input type="hidden" name="action" value="delete">
                                 <input type="hidden" name="offer_id" value="<?= $o['id'] ?>">
                                 <button type="submit" class="btn-delete">Удалить</button>
                             </form>
                         <?php else: ?>
                             <form method="POST" action="requests.php" style="margin: 0; display: flex; gap: 10px; width: 100%;">
+                                <input type="hidden" name="csrf" value="<?= $_SESSION['csrf'] ?>">
                                 <input type="hidden" name="offer_id" value="<?= $o['id'] ?>">
                                 <input type="hidden" name="receiver_id" value="<?= $o['user_id'] ?>">
                                 <input type="text" name="message" placeholder="Ваше сообщение..." style="margin: 0; height: 38px;">
@@ -208,6 +232,17 @@ if ($isAuth && isset($_GET['edit'])) {
                     <?php endif; ?>
                 </div>
             <?php endforeach; ?>
+            
+            <?php if ($totalPages > 1): ?>
+            <div style="display:flex; justify-content:center; gap:10px; margin-top:20px;">
+                <?php for($i = 1; $i <= $totalPages; $i++): ?>
+                    <a href="?<?= http_build_query(array_merge($_GET, ['page' => $i])) ?>" 
+                       class="btn-edit" style="<?= $i == $page ? 'background:var(--accent); color:white;' : '' ?>">
+                       <?= $i ?>
+                    </a>
+                <?php endfor; ?>
+            </div>
+            <?php endif; ?>
         <?php endif; ?>
     </div>
 </body>

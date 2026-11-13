@@ -47,6 +47,10 @@ $db->exec("CREATE TABLE IF NOT EXISTS requests (
     FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
 )");
 
+$db->exec("CREATE INDEX IF NOT EXISTS idx_offers_status ON offers(status)");
+$db->exec("CREATE INDEX IF NOT EXISTS idx_offers_user ON offers(user_id)");
+$db->exec("CREATE INDEX IF NOT EXISTS idx_requests_receiver ON requests(receiver_id)");
+
 $checkCat = $db->query("SELECT COUNT(*) FROM categories")->fetchColumn();
 if ($checkCat == 0) {
     $db->exec("INSERT INTO categories (name) VALUES ('Математика'), ('Программирование'), ('Иностранные языки'), ('Физика')");
