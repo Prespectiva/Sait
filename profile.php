@@ -28,7 +28,17 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8"><title>Личный кабинет | Колледж.Банк</title><link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8"><title>Личный кабинет | Колледж.Банк</title>
+    <script>
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        function toggleTheme() {
+            const newTheme = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+    </script>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="top-bar">
@@ -39,6 +49,7 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
             <?php if ($isAdmin): ?><a href="admin.php" class="nav-link" style="color: red;">Админ-панель</a><?php endif; ?>
         </div>
         <div style="display: flex; align-items: center;">
+            <button class="theme-toggle" onclick="toggleTheme()" title="Сменить тему">🌓</button>
             <a href="profile.php" class="nav-link active" style="margin-right: 15px;">Личный кабинет</a>
             <a href="logout.php" class="logout-btn">Выйти</a>
         </div>
@@ -68,10 +79,10 @@ $user = $stmt->fetch(PDO::FETCH_ASSOC);
                     <input type="text" name="name" value="<?= htmlspecialchars($user['name']) ?>" required>
                     
                     <label style="font-size: 14px; color: var(--text-muted);">О себе</label>
-                    <textarea name="bio" rows="3" style="width:100%; padding:10px; margin-bottom:15px; background:#f9fafb; border:1px solid var(--border); border-radius:6px; font-family:inherit; resize:vertical;"><?= htmlspecialchars($user['bio']) ?></textarea>
+                    <textarea name="bio" rows="3" style="width:100%; padding:10px; margin-bottom:15px; border-radius:6px;"><?= htmlspecialchars($user['bio']) ?></textarea>
                     
                     <label style="font-size: 14px; color: var(--text-muted);">Навыки</label>
-                    <textarea name="skills" rows="3" style="width:100%; padding:10px; margin-bottom:15px; background:#f9fafb; border:1px solid var(--border); border-radius:6px; font-family:inherit; resize:vertical;"><?= htmlspecialchars($user['skills']) ?></textarea>
+                    <textarea name="skills" rows="3" style="width:100%; padding:10px; margin-bottom:15px; border-radius:6px;"><?= htmlspecialchars($user['skills']) ?></textarea>
                     
                     <button type="submit">Сохранить</button>
                 </form>

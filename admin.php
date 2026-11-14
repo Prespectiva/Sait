@@ -12,7 +12,17 @@ $users = $db->query("SELECT id, name, email, role, created_at FROM users ORDER B
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8"><title>Админ-панель | Колледж.Банк</title><link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8"><title>Админ-панель | Колледж.Банк</title>
+    <script>
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        function toggleTheme() {
+            const newTheme = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+    </script>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="top-bar">
@@ -23,6 +33,7 @@ $users = $db->query("SELECT id, name, email, role, created_at FROM users ORDER B
             <a href="admin.php" class="nav-link active" style="color: red;">Админ-панель</a>
         </div>
         <div style="display: flex; align-items: center;">
+            <button class="theme-toggle" onclick="toggleTheme()" title="Сменить тему">🌓</button>
             <a href="profile.php" class="nav-link" style="margin-right: 15px;">Личный кабинет</a>
             <a href="logout.php" class="logout-btn">Выйти</a>
         </div>

@@ -28,10 +28,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8"><title>Вход | Колледж.Банк</title><link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8"><title>Вход | Колледж.Банк</title>
+    <script>
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        function toggleTheme() {
+            const newTheme = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+    </script>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="card">
+        <div style="text-align: right; margin-bottom: 10px;">
+            <button class="theme-toggle" onclick="toggleTheme()" title="Сменить тему" style="margin: 0;">🌓</button>
+        </div>
         <h2>Вход</h2>
         <?php if (isset($_GET['registered'])): ?>
             <div class="msg success">Успешная регистрация! Войдите.</div>

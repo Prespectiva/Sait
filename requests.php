@@ -95,7 +95,17 @@ function statusBadge($status) {
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8"><title>Отклики | Колледж.Банк</title><link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8"><title>Отклики | Колледж.Банк</title>
+    <script>
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        function toggleTheme() {
+            const newTheme = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+    </script>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="top-bar">
@@ -106,6 +116,7 @@ function statusBadge($status) {
             <?php if ($isAdmin): ?><a href="admin.php" class="nav-link" style="color: red;">Админ-панель</a><?php endif; ?>
         </div>
         <div style="display: flex; align-items: center;">
+            <button class="theme-toggle" onclick="toggleTheme()" title="Сменить тему">🌓</button>
             <a href="profile.php" class="nav-link" style="margin-right: 15px;">Личный кабинет</a>
             <a href="logout.php" class="logout-btn">Выйти</a>
         </div>

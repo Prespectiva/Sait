@@ -86,8 +86,18 @@ if ($isAuth && isset($_GET['edit'])) {
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8"><title>Заявки | Колледж.Банк</title><link rel="stylesheet" href="style.css">
-    <script>function toggleForm() { var f = document.getElementById('createForm'); f.style.display = (f.style.display === 'none') ? 'block' : 'none'; }</script>
+    <meta charset="UTF-8"><title>Заявки | Колледж.Банк</title>
+    <script>
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        function toggleTheme() {
+            const newTheme = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+        function toggleForm() { var f = document.getElementById('createForm'); f.style.display = (f.style.display === 'none') ? 'block' : 'none'; }
+    </script>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="top-bar">
@@ -100,6 +110,7 @@ if ($isAuth && isset($_GET['edit'])) {
             <?php endif; ?>
         </div>
         <div style="display: flex; align-items: center;">
+            <button class="theme-toggle" onclick="toggleTheme()" title="Сменить тему">🌓</button>
             <?php if ($isAuth): ?>
                 <a href="profile.php" class="nav-link" style="margin-right: 15px;">Личный кабинет</a>
                 <a href="logout.php" class="logout-btn">Выйти</a>
@@ -120,12 +131,10 @@ if ($isAuth && isset($_GET['edit'])) {
 
         <div class="content-box" style="margin-bottom: 20px; padding: 15px;">
             <form method="GET" style="display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end;">
-                
                 <div style="flex: 1 1 200px;">
                     <label style="font-size:12px; display:block; margin-bottom:5px;">Поиск</label>
                     <input type="text" name="q" value="<?= htmlspecialchars($q) ?>" style="margin:0; width:100%;">
                 </div>
-                
                 <div style="flex: 1 1 120px;">
                     <label style="font-size:12px; display:block; margin-bottom:5px;">Тип</label>
                     <select name="type" style="margin:0; width:100%;">
@@ -135,7 +144,6 @@ if ($isAuth && isset($_GET['edit'])) {
                         <option value="request" <?= $fType=='request'?'selected':'' ?>>Запрос</option>
                     </select>
                 </div>
-                
                 <div style="flex: 1 1 120px;">
                     <label style="font-size:12px; display:block; margin-bottom:5px;">Категория</label>
                     <select name="category" style="margin:0; width:100%;">
@@ -145,7 +153,6 @@ if ($isAuth && isset($_GET['edit'])) {
                         <?php endforeach; ?>
                     </select>
                 </div>
-                
                 <div style="flex: 1 1 150px;">
                     <label style="font-size:12px; display:block; margin-bottom:5px;">Сортировка</label>
                     <select name="sort" style="margin:0; width:100%;">
@@ -155,7 +162,6 @@ if ($isAuth && isset($_GET['edit'])) {
                         <option value="title_desc" <?= $sort=='title_desc'?'selected':'' ?>>Я-А</option>
                     </select>
                 </div>
-                
                 <div style="display: flex; gap: 10px; flex: 0 0 auto;">
                     <button type="submit" style="height: 38px; width: auto; padding: 0 20px;">Найти</button>
                     <a href="offers.php" class="btn-edit" style="height: 38px; margin: 0; display: flex; align-items: center; padding: 0 20px; box-sizing: border-box;">Сброс</a>
