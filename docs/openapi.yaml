@@ -1,4 +1,4 @@
- openapi: 3.0.3
+openapi: 3.0.3
 info:
   title: College Bank API
   description: API платформы обмена навыками студентов "Колледж.Банк"
@@ -30,25 +30,12 @@ paths:
           application/json:
             schema:
               type: object
-              required:
-                - title
-                - description
-                - user_id
-                - type
+              required: [title, description, user_id, type]
               properties:
-                title:
-                  type: string
-                  example: "Помощь с базами данных"
-                description:
-                  type: string
-                  example: "Помогу разобраться с SQL"
-                user_id:
-                  type: integer
-                  example: 1
-                type:
-                  type: string
-                  enum: [help, skill, request]
-                  example: "help"
+                title: { type: string, example: "Помощь с базами данных" }
+                description: { type: string, example: "Помогу разобраться с SQL" }
+                user_id: { type: integer, example: 1 }
+                type: { type: string, enum: [help, skill, request], example: "help" }
       responses:
         '201':
           description: Публикация создана
@@ -57,12 +44,35 @@ paths:
               schema:
                 type: object
                 properties:
-                  message:
-                    type: string
-                  id:
-                    type: integer
+                  message: { type: string }
+                  id: { type: integer }
         '400':
-          description: Ошибка валидации или некорректный JSON
+          description: Ошибка валидации, некорректный JSON или неверный Content-Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+
+  /api/offers.php?id={id}:
+    get:
+      summary: Получение одной публикации по ID
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Публикация найдена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Offer'
+        '404':
+          description: Публикация не найдена
           content:
             application/json:
               schema:
@@ -75,29 +85,17 @@ components:
     Offer:
       type: object
       properties:
-        id:
-          type: integer
-        user_id:
-          type: integer
-        category_id:
-          type: integer
-        type:
-          type: string
-        title:
-          type: string
-        description:
-          type: string
-        status:
-          type: string
-        created_at:
-          type: string
-        updated_at:
-          type: string
-        author_name:
-          type: string
+        id: { type: integer }
+        user_id: { type: integer }
+        category_id: { type: integer }
+        type: { type: string }
+        title: { type: string }
+        description: { type: string }
+        status: { type: string }
+        created_at: { type: string }
+        updated_at: { type: string }
+        author_name: { type: string }
     Error:
       type: object
       properties:
-        error:
-          type: string
-          example: "Публикация не найдена"
+        error: { type: string, example: "Публикация не найдена" }

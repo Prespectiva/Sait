@@ -21,6 +21,9 @@ class OfferApiController {
     }
 
     public function show(int $id): void {
+        if ($id <= 0) {
+            $this->response(['error' => 'Некорректный ID публикации'], 400);
+        }
         $offer = $this->model->getById($id);
         if (!$offer) {
             $this->response(['error' => 'Публикация не найдена'], 404);
@@ -29,6 +32,11 @@ class OfferApiController {
     }
 
     public function store(): void {
+        $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+        if (stripos($contentType, 'application/json') === false) {
+            $this->response(['error' => 'Требуется заголовок Content-Type: application/json'], 400);
+        }
+
         $input = file_get_contents('php://input');
         $data = json_decode($input, true);
 
@@ -43,6 +51,10 @@ class OfferApiController {
 
         if (empty($title) || empty($description) || !$userId || !in_array($type, ['help', 'skill', 'request'])) {
             $this->response(['error' => 'Проверьте введённые данные'], 400);
+        }
+
+        if (!$this->model->userExists($userId)) {
+            $this->response(['error' => 'Пользователь с таким ID не найден'], 400);
         }
 
         $newId = $this->model->create($title, $description, $userId, $type);

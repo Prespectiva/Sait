@@ -18,13 +18,13 @@ try {
         $controller->store();
     } else {
         http_response_code(405);
+        header('Allow: GET, POST');
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode(['error' => 'Метод не поддерживается'], JSON_UNESCAPED_UNICODE);
     }
 
 } catch (Exception $e) {
     error_log($e->getMessage());
-    
     http_response_code(500);
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode(['error' => 'Внутренняя ошибка сервера'], JSON_UNESCAPED_UNICODE);
