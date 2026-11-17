@@ -1,0 +1,103 @@
+ openapi: 3.0.3
+info:
+  title: College Bank API
+  description: API платформы обмена навыками студентов "Колледж.Банк"
+  version: 1.0.0
+
+servers:
+  - url: http://127.0.0.1:8000
+
+paths:
+  /api/offers.php:
+    get:
+      summary: Получение списка всех публикаций
+      responses:
+        '200':
+          description: Список публикаций успешно получен
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Offer'
+        '500':
+          description: Внутренняя ошибка сервера
+    post:
+      summary: Создание новой публикации
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - description
+                - user_id
+                - type
+              properties:
+                title:
+                  type: string
+                  example: "Помощь с базами данных"
+                description:
+                  type: string
+                  example: "Помогу разобраться с SQL"
+                user_id:
+                  type: integer
+                  example: 1
+                type:
+                  type: string
+                  enum: [help, skill, request]
+                  example: "help"
+      responses:
+        '201':
+          description: Публикация создана
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  id:
+                    type: integer
+        '400':
+          description: Ошибка валидации или некорректный JSON
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+
+components:
+  schemas:
+    Offer:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+        category_id:
+          type: integer
+        type:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+        created_at:
+          type: string
+        updated_at:
+          type: string
+        author_name:
+          type: string
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Публикация не найдена"
